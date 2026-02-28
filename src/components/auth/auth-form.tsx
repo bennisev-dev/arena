@@ -12,12 +12,17 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    if (mode === 'signup' && password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
     setLoading(true);
 
     try {
@@ -25,7 +30,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(mode === 'signup' ? { name } : {}),
+          ...(mode === 'signup' ? { name, confirmPassword } : {}),
           email,
           password
         })
@@ -89,6 +94,20 @@ export function AuthForm({ mode }: AuthFormProps) {
             onChange={(event) => setPassword(event.target.value)}
           />
         </label>
+
+        {mode === 'signup' && (
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-ink">Confirm password</span>
+            <input
+              required
+              minLength={8}
+              type="password"
+              className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none transition focus:border-neutral-400"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+            />
+          </label>
+        )}
 
         {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
 
