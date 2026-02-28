@@ -38,6 +38,6 @@ export const env = {
    return optional('XTIME_WEBHOOK_SECRET');
   },
   get DRIPJOBS_WEBHOOK_SECRET() {
-    return required('DRIPJOBS_WEBHOOK_SECRET');
+    return optional('DRIPJOBS_WEBHOOK_SECRET');
   }
 };

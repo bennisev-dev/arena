@@ -31,6 +31,12 @@ const dripJobsRecordSchema = z.object({
   leads_created: numericSchema,
   carsSold: numericSchema,
   cars_sold: numericSchema,
+  homesSold: numericSchema,
+  homes_sold: numericSchema,
+  jobsWon: numericSchema,
+  jobs_won: numericSchema,
+  jobsSold: numericSchema,
+  jobs_sold: numericSchema,
   vehicleValueTotal: numericSchema,
   vehicle_value_total: numericSchema,
   profitTotal: numericSchema,
@@ -86,6 +92,12 @@ const dripJobsFlatRecordSchema = z.object({
   vehicleValueTotal: numericSchema,
   cars_sold: numericSchema,
   carsSold: numericSchema,
+  homes_sold: numericSchema,
+  homesSold: numericSchema,
+  jobs_won: numericSchema,
+  jobsWon: numericSchema,
+  jobs_sold: numericSchema,
+  jobsSold: numericSchema,
   leads_created: numericSchema,
   leadsCreated: numericSchema,
   profit_total: numericSchema,
@@ -139,14 +151,25 @@ export class DripJobsAdapter implements CRMAdapter {
         year,
         timestamp: d.timestamp ?? d.time,
         vehicle_value_total: toNumber(d.job_amount ?? d.jobAmount ?? d.amount ?? d.value ?? d.vehicle_value_total ?? d.vehicleValueTotal),
-        cars_sold: toNumber(d.cars_sold ?? d.carsSold),
+        cars_sold: toNumber(
+          d.cars_sold ??
+            d.carsSold ??
+            d.homes_sold ??
+            d.homesSold ??
+            d.jobs_won ??
+            d.jobsWon ??
+            d.jobs_sold ??
+            d.jobsSold
+        ),
         leads_created: toNumber(d.leads_created ?? d.leadsCreated),
         profit_total: toNumber(d.profit_total ?? d.profitTotal)
       } as z.infer<typeof dripJobsRecordSchema>];
     }
 
     if (!records.length) {
-      throw new Error('DripJobs payload must include records.');
+      throw new Error(
+        'DripJobs payload must include records (record/records) or a flat payload with dealership_id and external_user_id (or sales_person_id).'
+      );
     }
 
     return records.map((record, index) => {
@@ -185,7 +208,16 @@ export class DripJobsAdapter implements CRMAdapter {
         year,
         metrics: {
           leadsCreated: toNumber(record.leadsCreated ?? record.leads_created),
-          carsSold: toNumber(record.carsSold ?? record.cars_sold),
+          carsSold: toNumber(
+            record.carsSold ??
+              record.cars_sold ??
+              record.homesSold ??
+              record.homes_sold ??
+              record.jobsWon ??
+              record.jobs_won ??
+              record.jobsSold ??
+              record.jobs_sold
+          ),
           vehicleValueTotal: toNumber(record.vehicleValueTotal ?? record.vehicle_value_total),
           profitTotal: toNumber(record.profitTotal ?? record.profit_total),
           servicesCompleted: toNumber(record.servicesCompleted ?? record.services_completed),

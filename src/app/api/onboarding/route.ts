@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
 
     const payload: SessionPayload = {
       sub: session.sub,
+      organizationId: session.organizationId ?? null,
       role: updated.role,
       dealershipId: updated.dealership_id,
       onboardingComplete: updated.onboarding_complete

@@ -3,6 +3,7 @@ import { env } from '@/lib/env';
 
 export type SessionPayload = JWTPayload & {
   sub: string;
+  organizationId: string | null;
   role: 'sales_rep' | 'service_rep' | 'manager' | null;
   dealershipId: string | null;
   onboardingComplete: boolean;

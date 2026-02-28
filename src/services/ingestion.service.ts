@@ -15,7 +15,11 @@ interface IngestionResult {
   unmatchedUsers: number;
 }
 
-export const ingestPayload = async (sourceSystem: SourceSystem, payload: unknown): Promise<IngestionResult> => {
+export const ingestPayload = async (
+  sourceSystem: SourceSystem,
+  payload: unknown,
+  organizationId: string
+): Promise<IngestionResult> => {
   const adapter = getAdapter(sourceSystem);
   const records = adapter.normalize(payload);
 
@@ -27,6 +31,7 @@ export const ingestPayload = async (sourceSystem: SourceSystem, payload: unknown
     try {
       const rawIngest = await db.rawIngest.create({
         data: {
+          organization_id: organizationId,
           source_system: sourceSystem,
           external_record_id: record.externalRecordId,
           payload: record.rawPayload
@@ -35,6 +40,7 @@ export const ingestPayload = async (sourceSystem: SourceSystem, payload: unknown
 
       const user = await db.user.findFirst({
         where: {
+          organization_id: organizationId,
           dealership_id: record.dealershipId,
           external_user_id: record.externalUserId
         }

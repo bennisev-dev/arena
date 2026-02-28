@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
 
     const data = await getLeaderboard({
       viewerUserId: session.sub,
+      organizationId: session.organizationId ?? null,
       role: session.role,
       dealershipId: session.dealershipId,
       metric: query.metric,

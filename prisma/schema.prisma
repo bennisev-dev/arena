@@ -21,10 +21,41 @@ enum SourceSystem {
   dripjobs
 }
 
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  users       User[]
+  crm_webhooks CrmWebhook[]
+
+  @@map("organizations")
+}
+
+model CrmWebhook {
+  id              String   @id @default(cuid())
+  organization_id String
+  webhook_secret  String   @unique
+  crm_type        String   // dripjobs, elead, fortellis, xtime
+  is_active       Boolean  @default(true)
+  last_used_at    DateTime?
+  request_count   Int      @default(0)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@index([webhook_secret])
+  @@index([organization_id])
+  @@map("crm_webhooks")
+}
+
 model User {
   id                String       @id @default(cuid())
+  organization_id   String?      // required after seed backfill
   name              String
-  email             String       @unique
+  email             String
   password_hash     String
   role              Role?
   dealership_id     String?
@@ -34,9 +65,12 @@ model User {
   created_at        DateTime     @default(now())
   updated_at        DateTime     @updatedAt
 
+  organization Organization? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
   performances      Performance[]
 
-  @@unique([dealership_id, external_user_id], map: "dealership_external_user_unique")
+  @@unique([organization_id, email], map: "organization_email_unique")
+  @@unique([organization_id, dealership_id, external_user_id], map: "org_dealership_external_user_unique")
+  @@index([organization_id])
   @@index([dealership_id])
 }
 
@@ -63,6 +97,7 @@ model Performance {
 
 model RawIngest {
   id                   String       @id @default(cuid())
+  organization_id      String?
   source_system        SourceSystem
   external_record_id   String
   payload              Json
@@ -71,6 +106,7 @@ model RawIngest {
   processed_performance_id String?
   error_message        String?
 
-  @@unique([source_system, external_record_id], map: "raw_ingest_idempotency_unique")
+  @@unique([organization_id, source_system, external_record_id], map: "raw_ingest_idempotency_unique")
   @@index([received_at])
+  @@index([organization_id])
 }

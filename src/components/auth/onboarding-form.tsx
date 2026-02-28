@@ -11,6 +11,7 @@ export function OnboardingForm() {
   const [externalUserId, setExternalUserId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const isDripJobs = crmSource === 'dripjobs';
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -48,7 +49,7 @@ export function OnboardingForm() {
   return (
     <div className="w-full max-w-xl rounded-3xl bg-white p-8 shadow-panel">
       <h1 className="text-3xl font-semibold text-ink">Complete onboarding</h1>
-      <p className="mt-2 text-sm text-muted">Select your role and connect your dealership data source.</p>
+      <p className="mt-2 text-sm text-muted">Select your role and connect your CRM data source.</p>
 
       <form className="mt-8 grid gap-4" onSubmit={submit}>
         <label className="grid gap-1">
@@ -65,13 +66,19 @@ export function OnboardingForm() {
         </label>
 
         <label className="grid gap-1">
-          <span className="text-sm font-medium">Dealership ID</span>
+          <span className="text-sm font-medium">{isDripJobs ? 'Team / Location ID' : 'Dealership ID'}</span>
           <input
             required
             className="rounded-xl border border-neutral-200 px-4 py-3 text-sm"
             value={dealershipId}
             onChange={(event) => setDealershipId(event.target.value)}
           />
+          {isDripJobs ? (
+            <span className="text-xs text-muted">
+              DripJobs doesn’t always include a location field in webhooks. Pick a constant (for example: <code className="rounded bg-neutral-100 px-1">default</code>)
+              and use the same value in Zapier under <code className="rounded bg-neutral-100 px-1">dealership_id</code>.
+            </span>
+          ) : null}
         </label>
 
         <label className="grid gap-1">
@@ -89,13 +96,14 @@ export function OnboardingForm() {
         </label>
 
         <label className="grid gap-1">
-          <span className="text-sm font-medium">External User ID</span>
+          <span className="text-sm font-medium">{isDripJobs ? 'DripJobs Sales Person ID' : 'External User ID'}</span>
           <input
             required
             className="rounded-xl border border-neutral-200 px-4 py-3 text-sm"
             value={externalUserId}
             onChange={(event) => setExternalUserId(event.target.value)}
           />
+          {isDripJobs ? <span className="text-xs text-muted">Use DripJobs “Job Sales Person Id”.</span> : null}
         </label>
 
         {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}

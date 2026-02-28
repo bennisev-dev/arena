@@ -108,13 +108,21 @@ const buildSummary = (entries: LeaderboardEntry[]) => {
 
 interface LeaderboardInput {
   viewerUserId: string;
+  organizationId: string | null;
   role: Role;
   dealershipId: string;
   metric: LeaderboardMetric;
   department: DashboardDepartment;
 }
 
-export const getLeaderboard = async ({ viewerUserId, role, dealershipId, metric, department }: LeaderboardInput): Promise<LeaderboardResponse> => {
+export const getLeaderboard = async ({
+  viewerUserId,
+  organizationId,
+  role,
+  dealershipId,
+  metric,
+  department
+}: LeaderboardInput): Promise<LeaderboardResponse> => {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
@@ -129,16 +137,19 @@ export const getLeaderboard = async ({ viewerUserId, role, dealershipId, metric,
         ? ['service_rep']
         : ['sales_rep', 'service_rep'];
 
+  const userFilter: { dealership_id: string; role: { in: Role[] }; organization_id?: string } = {
+    dealership_id: dealershipId,
+    role: { in: roleFilter }
+  };
+  if (organizationId != null) {
+    userFilter.organization_id = organizationId;
+  }
+
   const performances = await db.performance.findMany({
     where: {
       month,
       year,
-      user: {
-        dealership_id: dealershipId,
-        role: {
-          in: roleFilter
-        }
-      }
+      user: userFilter
     },
     include: {
       user: {

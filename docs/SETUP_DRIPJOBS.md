@@ -42,20 +42,27 @@ Point DripJobs at your Arena API:
 Method: **POST**.  
 Body: **JSON** (see payload format below).
 
-### Secret header
+### Webhook secret (per organization)
 
-Arena expects:
+Arena identifies the **organization** from the webhook secret. Each org has one or more CRM webhooks in the `crm_webhooks` table; the secret for that row is what you send.
 
-- **Header name:** `x-webhook-secret`
-- **Header value:** same as `DRIPJOBS_WEBHOOK_SECRET` in your Arena `.env`
+- **Header name:** `x-webhook-secret`  
+  (or use query param **`secret`**)
+- **Header value:** the `webhook_secret` for your org’s DripJobs webhook.
 
-Set this in DripJobs’ webhook configuration so every request includes that header. If it’s missing or wrong, Arena returns 401.
+After running migrations, a default organization and one DripJobs webhook are created. To get the secret:
+
+- In Supabase (or your DB client): `SELECT webhook_secret FROM crm_webhooks WHERE crm_type = 'dripjobs' AND is_active = true;`
+- Use that value in DripJobs (or Zapier) as the `x-webhook-secret` header.
+
+If the secret is missing or doesn’t match an active webhook, Arena returns 401.
 
 ### Payload format
 
 Arena expects a JSON body with at least one of `records` or `record`, and each record must include:
 
-- **Dealership** – one of: `dealership_id`, `dealershipId`, `dealerId`, `storeId`, `store_id`
+- **Team / Location** – one of: `dealership_id`, `dealershipId`, `dealerId`, `storeId`, `store_id`  
+  If DripJobs/Zapier doesn’t provide a field for this, **use a constant** (example: `default`) and use the same value in Arena onboarding.
 - **User** – one of: `external_user_id`, `externalUserId`, `user_id`, `userId`
 - **Period** – `month` / `year`, or `timestamp`, or `period.timestamp`
 
@@ -63,9 +70,12 @@ Arena expects a JSON body with at least one of `records` or `record`, and each r
 
 - Include `leads_created: 1` (or `leadsCreated: 1`) on the record.
 
-**For a home sold** (increments “Homes Sold” and optionally volume/profit):
+**For a job won / home sold** (increments “Homes Sold” and optionally volume/profit):
 
-- Include `cars_sold: 1` (or `carsSold: 1`).
+- Include one of:  
+  - `homes_sold: 1`, or  
+  - `jobs_won: 1`, or  
+  - `cars_sold: 1` (legacy key; still supported)
 - Optional: `vehicle_value_total`, `profit_total` (or camelCase equivalents).
 
 **Example – new lead**
@@ -97,7 +107,7 @@ Arena expects a JSON body with at least one of `records` or `record`, and each r
     "dealership_id": "store-123",
     "month": 2,
     "year": 2026,
-    "cars_sold": 1,
+    "homes_sold": 1,
     "vehicle_value_total": 450000,
     "profit_total": 13500
   }]
@@ -110,11 +120,11 @@ Use the same `dealership_id` and `external_user_id` values that you set in Arena
 
 ## 3. Quick checklist
 
+- [ ] Arena: Run migrations (creates default org and a DripJobs webhook; copy `webhook_secret` from `crm_webhooks`).
 - [ ] Arena: `npm run dev` (or deploy and use that URL).
-- [ ] Arena: `.env` has `DRIPJOBS_WEBHOOK_SECRET` set.
 - [ ] Arena: Users created and onboarded with **CRM Source = DripJobs**, and correct **Dealership ID** and **External User ID** (matching DripJobs).
-- [ ] DripJobs: Webhook URL = `https://<your-host>/api/webhooks/dripjobs`.
-- [ ] DripJobs: Header `x-webhook-secret` = same value as `DRIPJOBS_WEBHOOK_SECRET`.
+- [ ] DripJobs/Zapier: Webhook URL = `https://<your-host>/api/webhooks/dripjobs`.
+- [ ] DripJobs/Zapier: Header `x-webhook-secret` = your org’s `webhook_secret` from `crm_webhooks` (or query param `secret`).
 - [ ] DripJobs: Payloads use the same `dealership_id` and `external_user_id` as in Arena; send `leads_created` for leads and `cars_sold` (and optionally value/profit) for sales.
 
 After that, new leads and home sales from DripJobs will update the Arena leaderboard for the current month.
