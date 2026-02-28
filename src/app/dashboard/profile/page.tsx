@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getSessionFromCookies } from '@/lib/auth/session';
-import { DashboardOverview } from '@/components/dashboard/dashboard-client';
+import { ProfileContent } from '@/components/profile/profile-content';
 
-export default async function DashboardPage() {
+export default async function ProfilePage() {
   const session = await getSessionFromCookies();
 
   if (!session) {
@@ -13,5 +13,5 @@ export default async function DashboardPage() {
     redirect('/onboarding');
   }
 
-  return <DashboardOverview role={session.role} />;
+  return <ProfileContent />;
 }

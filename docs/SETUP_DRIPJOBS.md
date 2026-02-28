@@ -37,7 +37,8 @@ Open http://localhost:3000 (or your deployed URL).
 Point DripJobs at your Arena API:
 
 - **Local:** use a tunnel (e.g. ngrok): `https://<your-ngrok-host>/api/webhooks/dripjobs`
-- **Production:** `https://<your-arena-domain>/api/webhooks/dripjobs`
+- **Production (Vercel):** `https://arena-6no8ahpgv-ben-5568s-projects.vercel.app/api/webhooks/dripjobs`
+- **Or:** `https://<your-arena-domain>/api/webhooks/dripjobs`
 
 Method: **POST**.  
 Body: **JSON** (see payload format below).

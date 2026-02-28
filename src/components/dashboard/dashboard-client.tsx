@@ -4,16 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Download } from 'lucide-react';
 import type { DashboardDepartment, LeaderboardMetric, LeaderboardResponse } from '@/types/domain';
 import { currency, number, percentage } from '@/lib/utils';
-import { Sidebar } from '@/components/layout/sidebar';
-import { Topbar } from '@/components/layout/topbar';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { OverviewChart } from '@/components/dashboard/overview-chart';
 import { StatusCard } from '@/components/dashboard/status-card';
 import { LeaderboardTable } from '@/components/dashboard/leaderboard-table';
 
-interface DashboardClientProps {
+interface DashboardOverviewProps {
   role: 'sales_rep' | 'service_rep' | 'manager';
-  userName: string;
 }
 
 const metricOptions: Record<'sales_rep' | 'service_rep' | 'manager', LeaderboardMetric[]> = {
@@ -28,20 +25,43 @@ const defaultMetric: Record<'sales_rep' | 'service_rep' | 'manager', Leaderboard
   manager: 'leads_created'
 };
 
-const roleLabel: Record<'sales_rep' | 'service_rep' | 'manager', string> = {
-  sales_rep: 'Sales Rep',
-  service_rep: 'Service Rep',
-  manager: 'Manager'
-};
+const SETTINGS_KEYS = { defaultMetric: 'arena_settings_default_metric', defaultDepartment: 'arena_settings_default_department' };
 
-export function DashboardClient({ role, userName }: DashboardClientProps) {
+function getInitialMetric(role: 'sales_rep' | 'service_rep' | 'manager'): LeaderboardMetric {
+  if (typeof window === 'undefined') return defaultMetric[role];
+  try {
+    const stored = localStorage.getItem(SETTINGS_KEYS.defaultMetric);
+    if (stored && metricOptions[role].includes(stored as LeaderboardMetric)) return stored as LeaderboardMetric;
+  } catch {}
+  return defaultMetric[role];
+}
+
+function getInitialDepartment(role: 'sales_rep' | 'service_rep' | 'manager'): DashboardDepartment {
+  if (typeof window === 'undefined') return role === 'manager' ? 'all' : role === 'sales_rep' ? 'sales' : 'service';
+  if (role !== 'manager') return role === 'sales_rep' ? 'sales' : 'service';
+  try {
+    const stored = localStorage.getItem(SETTINGS_KEYS.defaultDepartment);
+    if (stored === 'all' || stored === 'sales' || stored === 'service') return stored;
+  } catch {}
+  return 'all';
+}
+
+export function DashboardOverview({ role }: DashboardOverviewProps) {
   const [metric, setMetric] = useState<LeaderboardMetric>(defaultMetric[role]);
   const [department, setDepartment] = useState<DashboardDepartment>(role === 'manager' ? 'all' : role === 'sales_rep' ? 'sales' : 'service');
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [settingsReady, setSettingsReady] = useState(false);
 
   useEffect(() => {
+    setMetric(getInitialMetric(role));
+    setDepartment(getInitialDepartment(role));
+    setSettingsReady(true);
+  }, [role]);
+
+  useEffect(() => {
+    if (!settingsReady) return;
     const run = async () => {
       setLoading(true);
       setError(null);
@@ -65,7 +85,7 @@ export function DashboardClient({ role, userName }: DashboardClientProps) {
     };
 
     run();
-  }, [metric, department]);
+  }, [settingsReady, metric, department]);
 
   const rows = useMemo(() => {
     if (!data) return [];
@@ -82,12 +102,6 @@ export function DashboardClient({ role, userName }: DashboardClientProps) {
         { label: 'Leads', value: number(data.summary.totalLeadsCreated), change: 'Current month total' },
         { label: 'Homes Sold', value: number(data.summary.totalCarsSold), change: 'Current month total' },
         { label: 'Total Profit', value: currency(data.summary.totalProfit), change: `Month ${data.month}/${data.year}` },
-        { label: 'Volume', value: currency(data.summary.totalVehicleValue), change: 'Current month total' },
-        {
-          label: 'Avg Gross / Sale',
-          value: currency(data.summary.totalCarsSold ? data.summary.totalProfit / data.summary.totalCarsSold : 0),
-          change: 'Computed from monthly totals'
-        },
         { label: 'Your Rank', value: data.self ? String(rows.findIndex((row) => row.userId === data.self?.userId) + 1) : '-', change: 'Current leaderboard' }
       ];
     }
@@ -106,21 +120,13 @@ export function DashboardClient({ role, userName }: DashboardClientProps) {
       { label: 'Leads', value: number(data.summary.totalLeadsCreated), change: 'Current month total' },
       { label: 'Homes Sold', value: number(data.summary.totalCarsSold), change: 'Current month total' },
       { label: 'Aggregate Profit', value: currency(data.summary.totalProfit), change: `Month ${data.month}/${data.year}` },
-      { label: 'Volume', value: currency(data.summary.totalVehicleValue), change: 'Current month total' },
       { label: 'Services', value: number(data.summary.totalServicesCompleted), change: 'Current month total' },
       { label: 'Avg Efficiency', value: percentage(data.summary.avgEfficiencyRate), change: 'Calculated across reps' }
     ];
   }, [data, role, rows]);
 
   return (
-    <div className="min-h-screen bg-[#E9E9E9] p-6 lg:p-10">
-      <div className="mx-auto max-w-[1320px] rounded-[28px] bg-[#F4F4F4] p-4 shadow-panel lg:p-6">
-        <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <Sidebar />
-
-          <main className="space-y-5 rounded-2xl bg-white p-5">
-            <Topbar userName={userName} roleLabel={roleLabel[role]} />
-
+    <div className="space-y-5">
             <section className="flex items-start justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-ink">Overview</h2>
@@ -214,9 +220,6 @@ export function DashboardClient({ role, userName }: DashboardClientProps) {
             ) : null}
 
             {loading ? <p className="text-xs text-neutral-400">Loading latest performance...</p> : null}
-          </main>
-        </div>
-      </div>
     </div>
   );
 }
